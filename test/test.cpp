@@ -20,19 +20,37 @@ bool test_(elsa::State& state) {
 
 bool test_state_copy(elsa::State& state) {
     {
-        elsa::State state2 { state };
-        lua_State* s1 { state };
-        lua_State* s2 { state2 };
+        elsa::State state3 { state };
+        elsa::State state2 { std::move(state3) };
+        lua_State*s1 { state }, *s2 { state2 };
         if(s1 != s2) return false;
         if(state.GetReferences() != state2.GetReferences()
         && state.GetReferences() != 2) return false;
     }
     return state.GetReferences() == 1;
 }
+bool test_state_assignment(elsa::State& state) {
+    {
+        elsa::State state3;
+        state3 = state;
+        elsa::State state2;
+        state2 = std::move(state3);
+        lua_State*s1 { state }, *s2 { state2 };
+        if(s1 != s2) return false;
+        if(state.GetReferences() != state2.GetReferences()
+           && state.GetReferences() != 2) return false;
+    }
+    return state.GetReferences() == 1;;
+}
 bool test_state_compare(elsa::State& state) {
-    elsa::State state2;
-    elsa::State state3 {state};
-    return state == state3 && state != state2;
+    lua_State* s { state };
+    elsa::State state2 { s, false };
+    elsa::State state3;
+    return state == state2 && state != state3;
+}
+bool test_state_copy_weak(elsa::State& state) {
+    elsa::State state2 { state, false };
+    return state.GetReferences() == 1;
 }
 
 bool test_state_call_return_0(elsa::State& state) {
@@ -72,7 +90,9 @@ bool test_state_select(elsa::State& state) {
 
 static std::map<const std::string, const std::function<bool(elsa::State&)>> tests {
     { "test_state_copy", test_state_copy },
+    { "test_state_assignment", test_state_assignment },
     { "test_state_compare", test_state_compare },
+    { "test_state_copy_weak", test_state_copy_weak },
     
     { "test_state_call_return_0", test_state_call_return_0 },
     { "test_state_call_return_1", test_state_call_return_1 },
@@ -118,12 +138,14 @@ int main(int argc, const char * argv[]) {
             std::cout << "failed with an exception being thrown: " << e.what();
             failures.push_back(test.first);
         }
-#if IGNORE_ERRORS
         catch(...) {
             std::cout << "failed with an error! ";
             failures.push_back(test.first);
-        }
+#if not IGNORE_ERRORS
+            throw;
 #endif
+        }
+
         std::cout << std::endl;
     }
     

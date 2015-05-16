@@ -10,85 +10,9 @@
 
 #pragma once
 
-namespace elsa {
-
-class BaseState {
-protected:
-    BaseState(lua_State* state, bool take_ownership):
-        state(state), ownership(take_ownership) { };
-    
-    lua_State* state;
-    bool ownership;
-    unsigned int* references { new unsigned int { 1 }};
-public:
-    BaseState(const BaseState& rhs):
-    state(rhs.state), ownership(rhs.ownership), references(rhs.references) {
-        ++(*references);
-    }
-    BaseState(BaseState&& rhs): state(rhs.state), ownership(rhs.ownership) {
-        rhs.state = nullptr;
-        rhs.ownership = false;
-    }
-    BaseState& operator=(const BaseState& rhs) {
-        state = rhs.state;
-        ownership = rhs.ownership;
-        ++(*references);
-        return *this;
-    }
-    BaseState& operator=(BaseState&& rhs) {
-        --(*references);
-        if(ownership && state && !(*references)) {
-            lua_close(state);
-            delete references;
-        }
-        state = rhs.state;
-        ownership = rhs.ownership;
-        rhs.state = nullptr;
-        rhs.ownership = false;
-        return *this;
-    }
-    ~BaseState() {
-        --(*references);
-        if(ownership && state && !(*references)) {
-            lua_close(state);
-            delete references;
-        }
-    }
-    
-    inline const unsigned int GetReferences() {
-        return *references;
-    }
-    
-    inline operator lua_State*() {
-        return state;
-    }
-    inline operator const int() {
-        return lua_gettop(state);
-    }
-    
-    inline friend bool operator==(const BaseState& lhs, const BaseState& rhs) {
-        return lhs.state == rhs.state;
-    }
-    inline friend bool operator!=(const BaseState& lhs, const BaseState& rhs) {
-        return lhs.state != rhs.state;
-    }
-    inline friend bool operator==(const BaseState& lhs, lua_State* rhs) {
-        return lhs.state == rhs;
-    }
-    inline friend bool operator==(lua_State* lhs, const BaseState& rhs) {
-        return lhs == rhs.state;
-    }
-    inline friend bool operator!=(const BaseState& lhs, lua_State* rhs) {
-        return lhs.state == rhs;
-    }
-    inline friend bool operator!=(lua_State* lhs, const BaseState& rhs) {
-        return lhs != rhs.state;
-    }
-};
-
-}
 
 #include "Utility.hpp"
+#include "BaseState.hpp"
 #include "Selector.hpp"
 
 
@@ -123,7 +47,6 @@ public:
         lua_settop(state, 0);
     }
     
-    
     void operator()(const std::string code) {
         int status = luaL_loadstring(state, code.c_str()) || lua_pcall(state, 0, LUA_MULTRET, 0);
         if(status != 0) {
@@ -144,7 +67,6 @@ public:
         return utility::Pop<T...>(state);
     }
     
-    
     void Load(const std::string file) {
         int status = luaL_loadfile(state, file.c_str()) || lua_pcall(state, 0, LUA_MULTRET, 0);
         if(status != 0) {
@@ -154,7 +76,6 @@ public:
         }
         lua_settop(state, 0);
     }
-    
     
     Selector operator[](const std::string name) {
         return Selector(*this, name);
@@ -175,10 +96,6 @@ public:
     Selector Select(const std::string name, const int name2, T... name3) {
         // TODO
     }
-
-        
-private:
-    
 };
 
 

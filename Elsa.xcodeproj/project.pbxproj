@@ -26,6 +26,7 @@
 /* Begin PBXFileReference section */
 		AA0C53401B04D63700EA97E7 /* State.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
 		AA2A7BE41B04F2C10010C608 /* Utility.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Utility.hpp; sourceTree = "<group>"; };
+		AA5A6FD31B06DE300081A300 /* BaseState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BaseState.hpp; sourceTree = "<group>"; };
 		AA8F565F1B0654FB0068761B /* Selector.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Selector.hpp; sourceTree = "<group>"; };
 		AAF2AD5D1B04CE89002B58D1 /* test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAF2AD601B04CE89002B58D1 /* test.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = test.cpp; sourceTree = "<group>"; };
@@ -84,8 +85,9 @@
 			isa = PBXGroup;
 			children = (
 				AA2A7BE41B04F2C10010C608 /* Utility.hpp */,
-				AA0C53401B04D63700EA97E7 /* State.hpp */,
+				AA5A6FD31B06DE300081A300 /* BaseState.hpp */,
 				AA8F565F1B0654FB0068761B /* Selector.hpp */,
+				AA0C53401B04D63700EA97E7 /* State.hpp */,
 			);
 			path = elsa;
 			sourceTree = "<group>";
