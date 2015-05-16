@@ -13,23 +13,23 @@
 
 namespace elsa {
     
+// TODO: THREAD SAFETY ("const")
 class BaseState {
 protected:
     
     lua_State* state;
-    bool ownership;
+    bool ownership { false };
     unsigned int* references { new unsigned int { 0 }};
     
 public:
     
     BaseState(lua_State* state, bool take_ownership):
         state(state), ownership(take_ownership) {
-        if(ownership) ++(*references);
+        ++(*references);
     };
-    BaseState(const BaseState& rhs, bool take_ownership = true):
-        state(rhs.state), ownership(take_ownership && *rhs.references),
-        references(rhs.references) {
-        if(ownership) ++(*references);
+    BaseState(const BaseState& rhs):
+        state(rhs.state), ownership(rhs.ownership), references(rhs.references) {
+        ++(*references);
     }
     BaseState(BaseState&& rhs):
         state(rhs.state), ownership(rhs.ownership), references(rhs.references) {
@@ -41,16 +41,14 @@ public:
         state = rhs.state;
         ownership = rhs.ownership;
         references = rhs.references;
-        if(ownership) ++(*references);
+        ++(*references);
         return *this;
     }
     BaseState& operator=(BaseState&& rhs) {
-        if(ownership) {
-            --(*references);
-            if(state && !(*references)) {
-                lua_close(state);
-                delete references;
-            }
+        --(*references);
+        if(ownership && state && !(*references)) {
+            lua_close(state);
+            delete references;
         }
         state = rhs.state;
         ownership = rhs.ownership;
@@ -61,19 +59,16 @@ public:
         return *this;
     }
     ~BaseState() {
-        if(references && ownership) {
+        if(references) {
             --(*references);
-            if(state && !(*references)) {
+            if(ownership && state && !(*references)) {
                 lua_close(state);
                 delete references;
             }
         }
     }
     
-    //!
-    //! Get count of instances with ownership of state
-    //!
-    inline const unsigned int GetReferences() {
+    inline const unsigned int GetReferences() const {
         return *references;
     }
     

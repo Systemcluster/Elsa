@@ -25,7 +25,7 @@ bool test_state_copy(elsa::State& state) {
         lua_State*s1 { state }, *s2 { state2 };
         if(s1 != s2) return false;
         if(state.GetReferences() != state2.GetReferences()
-        && state.GetReferences() != 2) return false;
+        || state.GetReferences() != 2) return false;
     }
     return state.GetReferences() == 1;
 }
@@ -38,7 +38,7 @@ bool test_state_assignment(elsa::State& state) {
         lua_State*s1 { state }, *s2 { state2 };
         if(s1 != s2) return false;
         if(state.GetReferences() != state2.GetReferences()
-           && state.GetReferences() != 2) return false;
+        || state.GetReferences() != 2) return false;
     }
     return state.GetReferences() == 1;;
 }
