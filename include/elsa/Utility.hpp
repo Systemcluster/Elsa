@@ -15,6 +15,8 @@
 #include <stdexcept>
 #include <tuple>
 #include <sstream>
+#include <utility>
+#include <mutex>
 
 
 namespace elsa {
@@ -152,14 +154,14 @@ namespace detail {
     template<size_t, typename... T>
     struct StackValue {
         typedef std::tuple<T...> type;
-        static type&& pop(lua_State* state) {
+        static type pop(lua_State* state) {
             int arity = static_cast<int>(Type<T...>::arity);
             int bottom = 0 - arity;
             auto ret = make_tuple<T...>(state, bottom);
             lua_pop(state, arity);
-            return std::move(ret);
+            return ret;
         }
-        static type&& get(lua_State* state, int& index) {
+        static type get(lua_State* state, int& index) {
             return make_tuple<T...>(state, index);
         }
     private:
@@ -178,13 +180,13 @@ namespace detail {
     template<typename T>
     struct StackValue<1, T> {
         typedef T type;
-        static type&& pop(lua_State* state) {
+        static type pop(lua_State* state) {
             auto ret = Get<T>(state, -1);
             lua_pop(state, 1);
-            return std::move(ret);
+            return ret;
         }
-        static type&& get(lua_State* state, int& index) {
-            return std::move(detail::Get<T>(state, index++));
+        static type get(lua_State* state, int& index) {
+            return detail::Get<T>(state, index++);
         }
     };
     template<typename... T>

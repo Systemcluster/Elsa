@@ -5,13 +5,11 @@
 //  Copyright (c) Christian Sdunek, 2015
 //
 
+#include <elsa.hpp>
 
 #include <iostream>
-#include <map>
+#include <utility>
 #include <vector>
-
-
-#include <elsa.hpp>
 
 
 bool test_(elsa::State& state) {
@@ -20,8 +18,10 @@ bool test_(elsa::State& state) {
 
 bool test_state_copy(elsa::State& state) {
     {
-        elsa::State state3 { state };
-        elsa::State state2 { std::move(state3) };
+        elsa::State state2 { [&](){
+            elsa::State state3 { state };
+            return std::move(state3);
+        }() };
         lua_State*s1 { state }, *s2 { state2 };
         if(s1 != s2) return false;
         if(state.GetReferences() != state2.GetReferences()
@@ -31,22 +31,38 @@ bool test_state_copy(elsa::State& state) {
 }
 bool test_state_assignment(elsa::State& state) {
     {
-        elsa::State state3;
-        state3 = state;
         elsa::State state2;
-        state2 = std::move(state3);
+        state2 = [&](){
+            elsa::State state3;
+            state3 = state;
+            return std::move(state3);
+        }();
+        elsa::State state3;
+        
         lua_State*s1 { state }, *s2 { state2 };
         if(s1 != s2) return false;
         if(state.GetReferences() != state2.GetReferences()
         || state.GetReferences() != 2) return false;
     }
-    return state.GetReferences() == 1;;
+    return state.GetReferences() == 1;
+}
+bool test_state_move_reassignment(elsa::State& state) {
+    elsa::State state2 { state };
+    elsa::State state3 { std::move(state2) };
+    unsigned int m_references = state.GetReferences();
+    state2 = state;
+    return state.GetReferences() == 3 && m_references == 2;
+}
+bool test_state_self_assignment(elsa::State& state) {
+    state = state;
+    state = std::move(state);
+    return state.GetReferences() == 1;
 }
 bool test_state_compare(elsa::State& state) {
     lua_State* s { state };
     elsa::State state2 { s, false };
     elsa::State state3;
-    return state == state2 && state != state3;
+    return state == state2 && state != state3 && s == state2;
 }
 bool test_state_copy_weak(elsa::State& state) {
     elsa::State state2 { state, false };
@@ -73,6 +89,10 @@ bool test_state_call_return_tuple(elsa::State& state) {
         && std::get<1>(var) == 10;
 }
 
+bool test_state_thread_safety(elsa::State& state) {
+    
+    return false;
+}
 
 
 bool test_selector(elsa::State& state) {
@@ -88,9 +108,12 @@ bool test_state_select(elsa::State& state) {
 
 
 
-static std::map<const std::string, const std::function<bool(elsa::State&)>> tests {
+static std::vector<const std::pair<
+const std::string, const std::function<bool(elsa::State&)>>> tests {
     { "test_state_copy", test_state_copy },
     { "test_state_assignment", test_state_assignment },
+    { "test_state_self_assignment", test_state_self_assignment },
+    { "test_state_move_reassignment", test_state_move_reassignment },
     { "test_state_compare", test_state_compare },
     { "test_state_copy_weak", test_state_copy_weak },
     
@@ -98,6 +121,8 @@ static std::map<const std::string, const std::function<bool(elsa::State&)>> test
     { "test_state_call_return_1", test_state_call_return_1 },
     { "test_state_call_return_n", test_state_call_return_n },
     { "test_state_call_return_tuple", test_state_call_return_tuple },
+    
+    { "test_state_thread_safety", test_state_thread_safety },
     
     { "test_selector", test_selector },
     
@@ -114,8 +139,8 @@ int main(int argc, const char * argv[]) {
     std::cout << "Running " << test_num << " tests:" << std::endl;
 
     std::vector<const std::string> failures;
-    std::map<const std::string, const int> impacts;
-    for(auto& test: tests) {
+    std::vector<std::pair<const std::string, const int>> impacts;
+    for(auto&& test: tests) {
         std::cout << test.first << "... ";
         elsa::State state { true };
         try {
@@ -125,22 +150,22 @@ int main(int argc, const char * argv[]) {
             }
             else {
                 std::cout << "failed";
-                failures.push_back(test.first);
+                failures.emplace_back(test.first);
             }
             const int stack = (int)state;
             if(stack) {
                 std::cout << " with effect on the stack: " << stack;
-                impacts.emplace(test.first, stack);
+                impacts.emplace_back(test.first, stack);
             }
             else std::cout << "";
         }
         catch(std::exception e) {
             std::cout << "failed with an exception being thrown: " << e.what();
-            failures.push_back(test.first);
+            failures.emplace_back(test.first);
         }
         catch(...) {
             std::cout << "failed with an error! ";
-            failures.push_back(test.first);
+            failures.emplace_back(test.first);
 #if not IGNORE_ERRORS
             throw;
 #endif
