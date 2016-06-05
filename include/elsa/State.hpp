@@ -47,7 +47,7 @@ public:
         lua_settop(state, 0);
     }
     
-    void operator()(const std::string code) {
+    void operator()(const std::string& code) {
         int status = luaL_loadstring(state, code.c_str()) || lua_pcall(state, 0, LUA_MULTRET, 0);
         if(status != 0) {
             std::string error = lua_tostring(state, -1);
@@ -57,7 +57,7 @@ public:
         lua_settop(state, 0);
     }
     template<typename... T>
-    auto Call(const std::string code) {
+    auto Call(const std::string& code) {
         int status = luaL_loadstring(state, code.c_str()) || lua_pcall(state, 0, utility::Type<T...>::arity, 0);
         if(status != 0) {
             std::string error = lua_tostring(state, -1);
@@ -67,7 +67,7 @@ public:
         return utility::Pop<T...>(state);
     }
     
-    void Load(const std::string file) {
+    void Load(const std::string& file) {
         int status = luaL_loadfile(state, file.c_str()) || lua_pcall(state, 0, LUA_MULTRET, 0);
         if(status != 0) {
             std::string error = lua_tostring(state, -1);
@@ -77,10 +77,10 @@ public:
         lua_settop(state, 0);
     }
     
-    Selector operator[](const std::string name) {
+    Selector operator[](const std::string& name) {
         return Selector(*this, name);
     }
-    Selector Select(const std::string name, const char delim = '.') {
+    Selector Select(const std::string& name, const char delim = '.') {
         std::istringstream str(name);
         std::string buf;
         while(std::getline(str, buf, delim)) {
@@ -89,11 +89,11 @@ public:
         return Selector(*this, name);
     }
     template<typename... T>
-    Selector Select(const std::string name, const std::string name2, T... name3) {
+    Selector Select(const std::string& name, const std::string& name2, T... name3) {
         // TODO
     }
     template<typename... T>
-    Selector Select(const std::string name, const int name2, T... name3) {
+    Selector Select(const std::string& name, const int name2, T... name3) {
         // TODO
     }
 };

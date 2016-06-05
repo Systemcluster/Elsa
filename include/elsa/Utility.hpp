@@ -16,7 +16,7 @@
 #include <tuple>
 #include <sstream>
 #include <utility>
-#include <mutex>
+#include <atomic>
 
 
 namespace elsa {
@@ -32,7 +32,7 @@ static const std::string LuaVersion { LUA_RELEASE };
 #else
 static const std::string LuaVersion { "Unknown" };
 #endif
-
+static const std::string LuaRelease { LUA_RELEASE };
 static const int LuaVersionNum { LUA_VERSION_NUM };
 
 
@@ -75,7 +75,7 @@ inline void Push(lua_State* state, int value) {
     lua_pushinteger(state, value);
 }
 inline void Push(lua_State* state, unsigned int value) {
-#if LUA_VERSION_NUM >= 502
+#if LUA_VERSION_NUM == 502
     lua_pushunsigned(state, value);
 #else
     lua_pushinteger(state, value);
@@ -85,7 +85,7 @@ inline void Push(lua_State* state, long value) {
     lua_pushinteger(state, value);
 }
 inline void Push(lua_State* state, unsigned long value) {
-#if LUA_VERSION_NUM >= 502
+#if LUA_VERSION_NUM == 502
     lua_pushunsigned(state, value);
 #else
     lua_pushinteger(state, value);
@@ -140,11 +140,11 @@ namespace detail {
 }
 
 template<typename... T>
-inline decltype(auto) Get(lua_State* state, int index) {
+inline auto Get(lua_State* state, int index) {
     return detail::StackValue<sizeof...(T), T...>::get(state, index);
 }
 template<typename... T>
-inline decltype(auto) Pop(lua_State* state) {
+inline auto Pop(lua_State* state) {
     return detail::StackValue<sizeof...(T), T...>::pop(state);
 }
 
@@ -204,7 +204,7 @@ namespace detail {
         return static_cast<int>(luaL_checkinteger(state, index));
     }
     template<> inline unsigned int Get(lua_State* state, int index) {
-#if LUA_VERSION_NUM >= 502
+#if LUA_VERSION_NUM == 502
         return static_cast<unsigned int>(luaL_checkunsigned(state, index));
 #else
         return static_cast<unsigned int>(luaL_checkinteger(state, index));
@@ -214,7 +214,7 @@ namespace detail {
         return static_cast<long>(luaL_checkinteger(state, index));
     }
     template<> inline unsigned long Get(lua_State* state, int index) {
-#if LUA_VERSION_NUM >= 502
+#if LUA_VERSION_NUM == 502
         return static_cast<unsigned long>(luaL_checkunsigned(state, index));
 #else
         return static_cast<unsigned long>(luaL_checkinteger(state, index));

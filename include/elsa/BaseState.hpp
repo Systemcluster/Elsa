@@ -10,7 +10,7 @@
 
 #pragma once
 
-
+#include<iostream>
 namespace elsa {
     
 class BaseState {
@@ -19,10 +19,7 @@ protected:
     lua_State* state;
     
     bool ownership { false };
-    unsigned int* references { new unsigned int { 0 }};
-
-    std::shared_ptr<std::mutex> references_mutex { new std::mutex };
-    std::shared_ptr<std::mutex> state_mutex { new std::mutex };
+    std::atomic<unsigned int>* references { new std::atomic<unsigned int> { 0 }};
     
     
 public:
@@ -32,14 +29,11 @@ public:
         ++(*references);
     };
     BaseState(const BaseState& rhs):
-    state(rhs.state), ownership(rhs.ownership), references(rhs.references),
-    state_mutex(rhs.state_mutex), references_mutex(rhs.references_mutex) {
-        std::lock_guard<std::mutex> lock(*references_mutex);
+    state(rhs.state), ownership(rhs.ownership), references(rhs.references) {
         ++(*references);
     }
     BaseState(BaseState&& rhs):
-    state(rhs.state), ownership(std::move(rhs.ownership)), references(rhs.references),
-    state_mutex(std::move(rhs.state_mutex)), references_mutex(std::move(rhs.references_mutex)) {
+    state(rhs.state), ownership(std::move(rhs.ownership)), references(rhs.references) {
         rhs.state = nullptr;
         rhs.references = nullptr;
     }
@@ -49,9 +43,7 @@ public:
     }
     ~BaseState() {
         if(!state) return;
-        std::lock_guard<std::mutex> lock(*references_mutex);
-        --(*references);
-        if(ownership && !(*references)) {
+        if(!--(*references) && ownership) {
             lua_close(state);
             delete references;
         }
@@ -72,8 +64,6 @@ public:
         std::swap(lhs.references, rhs.references);
         std::swap(lhs.ownership, rhs.ownership);
         std::swap(lhs.state, rhs.state);
-        std::swap(lhs.state_mutex, rhs.state_mutex);
-        std::swap(lhs.references_mutex, rhs.references_mutex);
     }
     
     inline friend bool operator==(const BaseState& lhs, const BaseState& rhs) {

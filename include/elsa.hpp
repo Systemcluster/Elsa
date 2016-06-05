@@ -7,7 +7,8 @@
 
 #pragma once
 
-
+#ifndef lua_h
 #include <lua.hpp>
+#endif
 
 #include "elsa/State.hpp"

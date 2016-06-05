@@ -14,14 +14,15 @@
 namespace elsa {
 
 class Selector {
-    friend class State;
+    friend class BaseState;
    
     BaseState state;
     std::string name;
     
 public:
 
-    Selector(BaseState state, const std::string name): state(state), name(name) {
+    Selector(BaseState state, const std::string name):
+    state(state), name(name) {
         
     }
 
