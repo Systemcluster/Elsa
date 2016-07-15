@@ -10,8 +10,8 @@
 
 #pragma once
 
-
 #include "Utility.hpp"
+#include "Definitions.hpp"
 #include "BaseState.hpp"
 #include "Selector.hpp"
 
@@ -26,6 +26,8 @@ static int wrap_exceptions(lua_State*, lua_CFunction);
 
 class State: public BaseState {
 public:
+
+    // TODO: constructor taking lua_State
     
     State(bool open_libs = false): BaseState(luaL_newstate(), true) {
         if(!state) throw std::runtime_error("Could not create Lua state");
@@ -36,6 +38,8 @@ public:
         lua_pop(state, 1);
 #endif
     }
+    
+    
     
     using BaseState::BaseState;
     using BaseState::operator=;

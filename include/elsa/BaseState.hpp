@@ -11,6 +11,8 @@
 #pragma once
 
 #include<iostream>
+
+
 namespace elsa {
     
 class BaseState {
@@ -18,24 +20,25 @@ protected:
     
     lua_State* state;
     
-    bool ownership { false };
-    std::atomic<unsigned int>* references { new std::atomic<unsigned int> { 0 }};
+    bool ownership;
+    std::atomic<unsigned int>* refcount { new std::atomic<unsigned int> { 0 }};
     
     
 public:
     
     BaseState(lua_State* state, bool take_ownership):
         state(state), ownership(take_ownership) {
-        ++(*references);
+        std::atomic_fetch_add_explicit(refcount, 1u, std::memory_order_relaxed);
     };
     BaseState(const BaseState& rhs):
-    state(rhs.state), ownership(rhs.ownership), references(rhs.references) {
-        ++(*references);
+    state(rhs.state), ownership(rhs.ownership), refcount(rhs.refcount) {
+        std::atomic_fetch_add_explicit(refcount, 1u, std::memory_order_relaxed);
     }
     BaseState(BaseState&& rhs):
-    state(rhs.state), ownership(std::move(rhs.ownership)), references(rhs.references) {
+    state(rhs.state), ownership(rhs.ownership), refcount(rhs.refcount) {
         rhs.state = nullptr;
-        rhs.references = nullptr;
+        rhs.ownership = false;
+        rhs.refcount = nullptr;
     }
     BaseState& operator=(BaseState rhs) {
         swap(*this, rhs);
@@ -43,17 +46,18 @@ public:
     }
     ~BaseState() {
         if(!state) return;
-        if(!--(*references) && ownership) {
+        if(std::atomic_fetch_sub_explicit(refcount, 1u, std::memory_order_release) == 1u && ownership) {
+            std::atomic_thread_fence(std::memory_order_acquire);
+            delete refcount;
             lua_close(state);
-            delete references;
         }
     }
     
     inline const unsigned int GetReferences() const {
-        return *references;
+        return std::atomic_load_explicit(refcount, std::memory_order_relaxed);
     }
     
-    inline operator lua_State*() const {
+    inline operator lua_State*const() const {
         return state;
     }
     inline operator const int() const {
@@ -61,7 +65,7 @@ public:
     }
     
     friend void swap(BaseState& lhs, BaseState& rhs) noexcept {
-        std::swap(lhs.references, rhs.references);
+        std::swap(lhs.refcount, rhs.refcount);
         std::swap(lhs.ownership, rhs.ownership);
         std::swap(lhs.state, rhs.state);
     }

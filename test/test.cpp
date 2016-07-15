@@ -41,10 +41,11 @@ bool test_state_assignment(elsa::State& state) {
         }();
         elsa::State state3;
         
-        lua_State*s1 { state }, *s2 { state2 };
+        lua_State *s1 { state }, *s2 { state2 };
         if(s1 != s2) return false;
-        if(state.GetReferences() != state2.GetReferences()
-        || state.GetReferences() != 2) return false;
+        if(state.GetReferences() != state2.GetReferences() ||
+           state.GetReferences() != 2)
+           return false;
     }
     return state.GetReferences() == 1;
 }
@@ -85,21 +86,20 @@ bool test_state_call_return_0(elsa::State& state) {
 }
 
 bool test_state_call_return_1(elsa::State& state) {
-    int var = state.Call<int>("return 5");
-    return var == 5;
+    int a = state.Call<int>("return 5");
+    return a == 5;
 }
 
 bool test_state_call_return_n(elsa::State& state) {
-    auto var = state.Call<int, bool, std::string>("return 5, true, 'test'");
-    return std::get<int>(var) == 5
-        && std::get<bool>(var) == true
-        && std::get<std::string>(var) == "test";
+    int i; bool b; std::string s;
+    std::tie(i, b, s) = state.Call<int, bool, std::string>("return 5, true, 'test'");
+    return i == 5 && b == true && s == "test";
 }
 
 bool test_state_call_return_tuple(elsa::State& state) {
-    auto var = state.Call<std::tuple<int, int>>("return 5, 10");
-    return std::get<0>(var) == 5
-        && std::get<1>(var) == 10;
+    int a, b;
+    std::tie(a, b) = state.Call<std::tuple<int, int>>("return 5, 10");
+    return a == 5 && b == 10;
 }
 
 
@@ -139,7 +139,7 @@ const std::string, const std::function<bool(elsa::State&)>>> tests {
 int main(int argc, const char * argv[]) {
    
     std::cout << "Elsa Test Runner (" << elsa::Version << ")" << std::endl;
-    std::cout << "Lua version: " << elsa::utility::LuaVersion << " (" << elsa::utility::LuaRelease << ")" << std::endl;
+    std::cout << "Lua version: " << elsa::LuaVersion << " (" << elsa::LuaRelease << ")" << std::endl;
     std::cout << std::endl;
 
     const unsigned long test_num { tests.size() };
