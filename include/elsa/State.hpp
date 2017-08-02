@@ -13,7 +13,9 @@
 #include "Utility.hpp"
 #include "Definitions.hpp"
 #include "BaseState.hpp"
+#include "Result.hpp"
 #include "Selector.hpp"
+
 
 
 namespace elsa {
@@ -24,99 +26,100 @@ static int wrap_exceptions(lua_State*, lua_CFunction);
 }
 #endif
 
-class State: public BaseState {
+class state: public base_state {
 public:
-
-    // TODO: constructor taking lua_State
     
-    State(bool open_libs = false): BaseState(luaL_newstate(), true) {
-        if(!state) throw std::runtime_error("Could not create Lua state");
-        if(open_libs) luaL_openlibs(state);
+    state(bool open_libs = false): base_state(luaL_newstate(), true) {
+        if(!lstate) throw std::runtime_error("Could not create Lua lstate");
+        if(open_libs) luaL_openlibs(lstate);
 #if defined(LUAJIT_VERSION) && defined(DEBUG)
-        lua_pushlightuserdata(state, (void*)utility::wrap_exceptions);
-        luaJIT_setmode(state, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON);
-        lua_pop(state, 1);
+        lua_pushlightuserdata(lstate, (void*)utility::wrap_exceptions);
+        luaJIT_setmode(lstate, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON);
+        lua_pop(lstate, 1);
 #endif
     }
     
+    using base_state::base_state;
+    using base_state::operator=;
     
     
-    using BaseState::BaseState;
-    using BaseState::operator=;
-    
-    void CollectGarbage() {
-        lua_gc(state, LUA_GCCOLLECT, 0);
+    void collect_garbage() {
+        lua_gc(lstate, LUA_GCCOLLECT, 0);
     }
-    void ClearStack() {
-        lua_settop(state, 0);
+    void clear_stack() {
+        lua_settop(lstate, 0);
     }
     
     void operator()(const std::string& code) {
-        int status = luaL_loadstring(state, code.c_str()) || lua_pcall(state, 0, LUA_MULTRET, 0);
+        utility::stack_guard guard {*this};
+        int status = luaL_loadstring(lstate, code.c_str()) || lua_pcall(lstate, 0, LUA_MULTRET, 0);
         if(status != 0) {
-            std::string error = lua_tostring(state, -1);
-            lua_settop(state, 0);
+            std::string error = lua_tostring(lstate, -1);
             throw std::runtime_error("Could not load string: " + error);
         }
-        lua_settop(state, 0);
     }
-    template<typename... T>
-    auto Call(const std::string& code) {
-        int status = luaL_loadstring(state, code.c_str()) || lua_pcall(state, 0, utility::Type<T...>::arity, 0);
+    template<typename... Ret>
+    auto call(const std::string& code) {
+        utility::stack_guard guard {*this};
+        int status = luaL_loadstring(lstate, code.c_str()) || lua_pcall(lstate, 0, utility::arity<Ret...>::value, 0);
         if(status != 0) {
-            std::string error = lua_tostring(state, -1);
-            lua_settop(state, 0);
+            std::string error = lua_tostring(lstate, -1);
+            lua_settop(lstate, 0);
             throw std::runtime_error("Could not load string: " + error);
         }
-        return utility::Pop<T...>(state);
+        return utility::get<Ret...>(lstate);
+        //return utility::pop<Ret...>(lstate);
     }
     
-    void Load(const std::string& file) {
-        int status = luaL_loadfile(state, file.c_str()) || lua_pcall(state, 0, LUA_MULTRET, 0);
+    void load(const std::string& file) {
+        utility::stack_guard guard {*this};
+        int status = luaL_loadfile(lstate, file.c_str()) || lua_pcall(lstate, 0, LUA_MULTRET, 0);
         if(status != 0) {
-            std::string error = lua_tostring(state, -1);
-            lua_settop(state, 0);
+            std::string error = lua_tostring(lstate, -1);
+            lua_settop(lstate, 0);
             throw std::runtime_error("Could not load file " + file + ": " + error);
         }
-        lua_settop(state, 0);
     }
     
-    Selector operator[](const std::string& name) {
-        return Selector(*this, name);
+    template<typename T>
+    selector operator[](T&& name) {
+        return selector {*this, name};
     }
-    Selector Select(const std::string& name, const char delim = '.') {
+    
+    template<typename... T>
+    selector select(T&&... name) {
+        selector s {*this};
+        ((s = s[name]), ...);
+        return s;
+    }
+    template<typename T>
+    selector select(T&& name, const char delim = '.') {
         std::istringstream str(name);
         std::string buf;
+        selector s {*this};
         while(std::getline(str, buf, delim)) {
-            // TODO
+            s = s[buf];
         }
-        return Selector(*this, name);
+        return s;
     }
-    template<typename... T>
-    Selector Select(const std::string& name, const std::string& name2, T... name3) {
-        // TODO
-    }
-    template<typename... T>
-    Selector Select(const std::string& name, const int name2, T... name3) {
-        // TODO
-    }
+    
 };
 
 
 #if defined(LUAJIT_VERSION) && defined(DEBUG)
 namespace utility {
-static int wrap_exceptions(lua_State* state, lua_CFunction f)
+static int wrap_exceptions(lua_State* lstate, lua_CFunction f)
 {
     try {
-        return f(state);
+        return f(lstate);
     } catch (const char *s) {
-        lua_pushstring(state, s);
+        lua_pushstring(lstate, s);
     } catch (std::exception& e) {
-        lua_pushstring(state, e.what());
+        lua_pushstring(lstate, e.what());
     } catch (...) {
-        lua_pushliteral(state, "caught (...)");
+        lua_pushliteral(lstate, "caught (...)");
     }
-    return lua_error(state);
+    return lua_error(lstate);
 }
 }
 #endif

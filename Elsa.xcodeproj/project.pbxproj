@@ -26,6 +26,7 @@
 /* Begin PBXFileReference section */
 		AA0C53401B04D63700EA97E7 /* State.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
 		AA2A7BE41B04F2C10010C608 /* Utility.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Utility.hpp; sourceTree = "<group>"; };
+		AA3D47F41D4A51F600C4B548 /* Result.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Result.hpp; sourceTree = "<group>"; };
 		AA5A6FD31B06DE300081A300 /* BaseState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BaseState.hpp; sourceTree = "<group>"; };
 		AA75DA841C4A413E00A0534C /* libluajit-5.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libluajit-5.1.dylib"; path = "../../../../../usr/local/lib/libluajit-5.1.dylib"; sourceTree = "<group>"; };
 		AA8E5E0C1B0A89B7001E9BCC /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -94,6 +95,7 @@
 				AA0C53401B04D63700EA97E7 /* State.hpp */,
 				AA8F565F1B0654FB0068761B /* Selector.hpp */,
 				AABB9A6E1D390A9900B78C66 /* Definitions.hpp */,
+				AA3D47F41D4A51F600C4B548 /* Result.hpp */,
 			);
 			path = elsa;
 			sourceTree = "<group>";
@@ -193,6 +195,7 @@
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACH_O_TYPE = mh_execute;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
@@ -235,6 +238,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LLVM_LTO = YES_THIN;
 				MACH_O_TYPE = mh_execute;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-std=c++1z",

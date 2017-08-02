@@ -1,20 +1,18 @@
 # Elsa
 
-C++14 interface to Lua 5.1+ and LuaJIT 2.0+. 
+C++17 header-only interface to Lua 5.1+ and LuaJIT 2.0+. 
 
-Work in progress.
+Work in progress. Not yet ready for general use!
 
 ## Usage
 
-Install the files within `include` and include `elsa.hpp` in your project. `lua.hpp` must exist in your include path and your project must link against a compatible lua library (Lua 5.1+, LuaJIT 2.0+ or similar). 
+Install the files within `include` and include `elsa.hpp`. `lua.hpp` must exist in your include path and your project must link against a compatible lua library (Lua 5.1+, LuaJIT 2.0+ or similar). 
 
-### Building
+---
 
-Elsa is a header-only library, so no building is required.
+To build the tests, run `cmake` or manually compile `test/test.cpp`. In order to build the tests with `cmake`, execute the following command:
 
-To build the tests, run `cmake` or include `test/test.cpp` in your own project. In order to build the tests with `cmake`, execute the following command:
-
-    mkdir -p build && cd build && cmake .. && make
+mkdir -p build && cd build && cmake .. && make
 
 The tests can then be run by executing `./elsa_test`. 
 
