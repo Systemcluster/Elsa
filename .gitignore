@@ -1,4 +1,5 @@
 Build
 .DS_Store
-*.xcodeproj/
-.vscode/
+*.xcodeproj
+*.xcworkspace
+.vscode
