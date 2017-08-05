@@ -23,8 +23,8 @@ class selector {
     selector(base_state state):
     state(state) {
     }
-    selector(base_state state, std::string name, std::vector<std::string> path):
-    state(state), path(path) {
+    selector(base_state state, std::string name, std::vector<std::string> path_):
+    state(state), path(path_) {
         path.push_back(name);
     }
     
@@ -51,42 +51,26 @@ public:
         path.push_back(name);
     }
 
-    inline selector operator[](std::string name) & {
+    inline auto operator[](std::string name) & {
         return selector {state, name, path};
     }
-    inline selector&& operator[](std::string name) && {
+    inline auto operator[](std::string name) && {
         path.push_back(name);
-        return std::move(*this);
-    }
-
-
-    template<typename... Arg>
-    selector& operator()(Arg&&... args) {
-        utility::stack_guard guard {state};
-        traverse();
-        utility::push(state, std::forward(args)...);
-        if(lua_pcall(state, utility::arity<Arg...>::value, LUA_MULTRET, 0)) {
-            std::string error = lua_tostring(state, -1);
-            lua_pop(state, 1);
-            throw std::runtime_error("Could not call: " + error);
-        }
         return *this;
     }
+
     
     template<typename... Ret, typename... Arg>
     auto call(Arg&&... args) {
         utility::stack_guard guard {state};
         traverse();
-        utility::push(state, std::forward(args)...);
+        utility::push(state, std::forward<decltype(args)>(args)...);
         if(lua_pcall(state, utility::arity<Arg...>::value, utility::arity<Ret...>::value, 0)) {
             std::string error = lua_tostring(state, -1);
             lua_pop(state, 1);
             throw std::runtime_error("Could not call: " + error);
         }
         return utility::get<Ret...>(state);
-        //auto ret = utility::pop<Ret...>(state);
-        //if(path.size()) lua_pop(state, (int)path.size() - 1);
-        //return ret;
     }
     template<typename... Ret>
     auto call() {
@@ -98,14 +82,58 @@ public:
             throw std::runtime_error("Could not call: " + error);
         }
         return utility::get<Ret...>(state);
-        //auto ret = utility::pop<Ret...>(state);
-        //if(path.size()) lua_pop(state, (int)path.size() - 1);
-        //return ret;
     }
     
+    template<typename... Arg>
+    class result {
+        friend class selector;
+        
+        selector* sel;
+        bool called {false};
+        std::tuple<Arg...> args;
+        
+        explicit result(selector* sel, Arg&&... args):
+            sel(sel), args(args...) {}
+        
+        result(result&& rhs) = delete;
+        result(const result&) = delete;
+        result& operator=(result) = delete;
+    public:
+        ~result() {
+            if(!called) try {
+                std::apply([&](auto&&... args) -> auto {
+                    return sel->call<>(std::forward<decltype(args)>(args)...);
+                }, args);
+            }
+            catch(const std::exception& e) {
+                // TODO: change the way errors are handled
+                std::cerr << e.what() << std::endl;
+            }
+        }
+        template<typename T,
+            typename = std::enable_if_t<!std::is_reference<T>::value>,
+            typename = std::enable_if_t<utility::arity<T>::value == 1>
+        >
+        inline operator const T() {
+            called = true;
+            return std::apply([&](auto&&... args) -> auto {
+                return sel->call<T>(std::forward<decltype(args)>(args)...);
+            }, args);
+        }
+        template<typename... T,
+        typename = std::enable_if_t<utility::none<std::is_reference<T>::value...>::value>
+        >
+        inline operator const std::tuple<T...>() {
+            called = true;
+            return std::apply([&](auto&&... args) -> auto {
+                return sel->call<T...>(std::forward<decltype(args)>(args)...);
+            }, args);
+        }
+    };
     
-    auto call2() {
-        return result(state);
+    template<typename... Arg>
+    auto operator()(Arg&&... args) {
+        return result<Arg...>(this, std::forward<decltype(args)>(args)...);
     }
     
     

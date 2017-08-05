@@ -22,7 +22,6 @@
 
 
 namespace elsa {
-
 namespace utility {
 
 
@@ -38,7 +37,10 @@ struct stack_guard {
             lua_settop(state, stack_top);
 #endif
         // TODO: remove this stupid test output ;)
-        else std::cout << "!unwinding! ";
+        else {
+            std::cout << "!unwinding! ";
+            lua_settop(state, 0);
+        }
     }
 private:
     lua_State* state;
@@ -50,23 +52,23 @@ private:
 };
 
 
-template<typename... T>
-struct all;
+template<bool... T>
+    struct all;
 template <>
-struct all<>: std::true_type {};
-template<typename... T>
-struct all<std::false_type, T...>: std::false_type {};
-template<typename... T>
-struct all<std::true_type, T...>: all<T...>::type {};
+    struct all<>: std::true_type {};
+template<bool... T>
+    struct all<false, T...>: std::false_type {};
+template<bool... T>
+    struct all<true, T...>: all<T...>::type {};
 
-template <typename... T>
-struct none;
+template <bool... T>
+    struct none;
 template <>
-struct none<>: std::true_type {};
-template<typename... T>
-struct none<std::true_type, T...>: std::false_type {};
-template<typename... T>
-struct none<std::false_type, T...>: all<T...>::type {};
+    struct none<>: std::true_type {};
+template<bool... T>
+    struct none<true, T...>: std::false_type {};
+template<bool... T>
+    struct none<false, T...>: none<T...>::type {};
 
 template<typename... T>
 struct arity {
@@ -258,5 +260,4 @@ inline auto pop(lua_State* state) {
 
 
 }
-
 }

@@ -13,7 +13,6 @@
 #include "Utility.hpp"
 #include "Definitions.hpp"
 #include "BaseState.hpp"
-#include "Result.hpp"
 #include "Selector.hpp"
 
 
@@ -89,7 +88,7 @@ public:
     template<typename... T>
     selector select(T&&... name) {
         selector s {*this};
-        ((s = s[name]), ...);
+        ((s = std::move(s)[name]), ...);
         return s;
     }
     template<typename T>
@@ -98,7 +97,7 @@ public:
         std::string buf;
         selector s {*this};
         while(std::getline(str, buf, delim)) {
-            s = s[buf];
+            s = std::move(s)[buf];
         }
         return s;
     }

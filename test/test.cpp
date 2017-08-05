@@ -163,12 +163,23 @@ bool test_state_select_n(elsa::state& state) {
     return (int)sel == 5;
 }
 
-bool test_result(elsa::state& state) {
+bool test_call_result(elsa::state& state) {
     state("a = function() return 10, 20; end");
-    std::tuple<int, int> c  = state["a"].call2();
+    std::tuple<int, int> c  = state["a"]();
     return std::get<0>(c) == 10 && std::get<1>(c) == 20;
 }
 
+bool test_call_result_args(elsa::state& state) {
+    state("a = function(b) return b+2; end");
+    int a = state["a"](10);
+    return a == 12;
+}
+
+bool test_call_args(elsa::state& state) {
+    state("a = function(b) return b+2; end");
+    state["a"](10);
+    return true;
+}
 
 bool test_utility_arity(elsa::state& state) {
     return
@@ -208,7 +219,9 @@ const std::string, const std::function<bool(elsa::state&)>>> tests {
     
     { "test_utility_arity", test_utility_arity },
     
-    { "test_result", test_result }
+    { "test_call_result", test_call_result },
+    { "test_call_result_args", test_call_result_args },
+    { "test_call_args", test_call_args }
 };
 
 #if defined(COLOURED_OUTPUT)
