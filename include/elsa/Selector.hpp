@@ -64,7 +64,7 @@ public:
     auto call(Arg&&... args) {
         utility::stack_guard guard {state};
         traverse();
-        utility::push(state, std::forward<decltype(args)>(args)...);
+        utility::push(state, std::forward<Arg>(args)...);
         if(lua_pcall(state, utility::arity<Arg...>::value, utility::arity<Ret...>::value, 0)) {
             std::string error = lua_tostring(state, -1);
             lua_pop(state, 1);
@@ -95,14 +95,13 @@ public:
         explicit result(selector* sel, Arg&&... args):
             sel(sel), args(args...) {}
         
-        result(result&& rhs) = delete;
         result(const result&) = delete;
         result& operator=(result) = delete;
     public:
-        ~result() {
+        ~result() noexcept(false) {
             if(!called) try {
                 std::apply([&](auto&&... args) -> auto {
-                    return sel->call<>(std::forward<decltype(args)>(args)...);
+                    return sel->call<>(std::forward<Arg>(args)...);
                 }, args);
             }
             catch(const std::exception& e) {
@@ -110,30 +109,33 @@ public:
                 std::cerr << e.what() << std::endl;
             }
         }
+        
         template<typename T,
             typename = std::enable_if_t<!std::is_reference<T>::value>,
             typename = std::enable_if_t<utility::arity<T>::value == 1>
         >
-        inline operator const T() {
+        inline operator const T() && {
             called = true;
             return std::apply([&](auto&&... args) -> auto {
-                return sel->call<T>(std::forward<decltype(args)>(args)...);
+                return sel->call<T>(std::forward<Arg>(args)...);
             }, args);
         }
+
         template<typename... T,
-        typename = std::enable_if_t<utility::none<std::is_reference<T>::value...>::value>
+            typename = std::enable_if_t<utility::none<std::is_reference<T>::value...>::value>
         >
-        inline operator const std::tuple<T...>() {
+        inline operator const std::tuple<T...>() && {
             called = true;
             return std::apply([&](auto&&... args) -> auto {
-                return sel->call<T...>(std::forward<decltype(args)>(args)...);
+                return sel->call<T...>(std::forward<Arg>(args)...);
             }, args);
         }
+
     };
     
     template<typename... Arg>
     auto operator()(Arg&&... args) {
-        return result<Arg...>(this, std::forward<decltype(args)>(args)...);
+        return result<Arg...>(this, std::forward<Arg>(args)...);
     }
     
     
@@ -144,7 +146,18 @@ public:
         return utility::get<T>(state);
     }
     
+    bool operator==(selector&& rhs) const {
+        return state == state && path == path;
+    }
+                
+    template<typename T>
+    bool operator==(T&& rhs) const {
+        utility::stack_guard guard {state};
+        traverse();
+        return utility::get<T>(state);
+    }
 
 };
+
 
 }

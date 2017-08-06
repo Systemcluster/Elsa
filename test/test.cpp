@@ -2,7 +2,7 @@
 //  Elsa Lua Interface
 //
 //
-//  Copyright (c) Christian Sdunek, 2015
+//  Copyright (c) Christian Sdunek, 2015-2017
 //
 
 // TODO: reorder
@@ -117,7 +117,7 @@ bool test_selector_get(elsa::state& state) {
     auto a = state["a"];
     auto c = state["b"]["c"];
     
-    return (int)a == 10 && (int)c == 8;
+    return a == 10 && c == 8;
 }
 
 bool test_selector_call_return_0(elsa::state& state) {
@@ -153,14 +153,24 @@ bool test_state_select_delim(elsa::state& state) {
     state("a = { b = 5; c = function() end; d = { e = 5 } }");
     auto sel = state.select("a.d.e", '.');
 
-    return (int)sel == 5;
+    return sel == 5;
 }
 
 bool test_state_select_n(elsa::state& state) {
     state("a = { b = 5; c = function() end; d = { e = 5 } }");
     auto sel = state.select("a", "d", "e");
     
-    return (int)sel == 5;
+    return sel == 5;
+}
+
+bool test_utility_arity(elsa::state& state) {
+    return
+    elsa::utility::arity<>::value == 0 &&
+    elsa::utility::arity<int, int, int>::value == 3 &&
+    elsa::utility::arity<std::tuple<int, int, int>>::value == 3 &&
+    elsa::utility::arity<std::tuple<int, int>, int>::value == 3 &&
+    elsa::utility::arity<std::tuple<std::tuple<int, int>, int>>::value == 3 &&
+    elsa::utility::arity<std::tuple<void, int>, void>::value == 1;
 }
 
 bool test_call_result(elsa::state& state) {
@@ -181,15 +191,13 @@ bool test_call_args(elsa::state& state) {
     return true;
 }
 
-bool test_utility_arity(elsa::state& state) {
-    return
-        elsa::utility::arity<>::value == 0 &&
-        elsa::utility::arity<int, int, int>::value == 3 &&
-        elsa::utility::arity<std::tuple<int, int, int>>::value == 3 &&
-        elsa::utility::arity<std::tuple<int, int>, int>::value == 3 &&
-        elsa::utility::arity<std::tuple<std::tuple<int, int>, int>>::value == 3 &&
-        elsa::utility::arity<std::tuple<void, int>, void>::value == 1;
+bool test_call_nested_tuple(elsa::state& state) {
+    state("a = function() return 1, 2, 3; end");
+    std::tuple<int, std::tuple<int, int>> a = state["a"]();
+    auto b = std::get<1>(a);
+    return std::get<0>(a) == 1 && std::get<0>(b) == 2 && std::get<1>(b) == 3;
 }
+
 
 
 static const std::vector<std::pair<
@@ -221,7 +229,9 @@ const std::string, const std::function<bool(elsa::state&)>>> tests {
     
     { "test_call_result", test_call_result },
     { "test_call_result_args", test_call_result_args },
-    { "test_call_args", test_call_args }
+    { "test_call_args", test_call_args },
+    
+    { "test_call_nested_tuple", test_call_nested_tuple }
 };
 
 #if defined(COLOURED_OUTPUT)
