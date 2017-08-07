@@ -21,29 +21,24 @@ class selector {
     std::vector<std::string> path {};
     
     selector(base_state state):
-    state(state) {
-    }
+    state(state) { }
     selector(base_state state, std::string name, std::vector<std::string> path_):
     state(state), path(path_) {
         path.push_back(name);
     }
     
-    void traverse_root(const std::size_t v_index = 0, const int s_index = LUA_GLOBALSINDEX) const {
-        if(v_index < path.size() - 1) {
-            lua_pushstring(state, path.at(v_index).c_str());
-            lua_rawget(state, s_index);
-            traverse_root(v_index + 1, -2);
-        }
-    }
-    void traverse(const std::size_t v_index = 0, const int s_index = LUA_GLOBALSINDEX) const {
+    void traverse(const std::size_t v_index, const int s_index) const {
         if(v_index < path.size()) {
             lua_pushstring(state, path.at(v_index).c_str());
             lua_rawget(state, s_index);
             traverse(v_index + 1, -2);
         }
     }
+    void traverse() const {
+        lua_pushglobaltable(state);
+        traverse(0, -2);
+    }
 
-    
 public:
 
     selector(base_state state, std::string name):
@@ -88,7 +83,7 @@ public:
     class result {
         friend class selector;
         
-        selector* sel;
+        selector* sel {nullptr};
         bool called {false};
         std::tuple<Arg...> args;
         
@@ -98,8 +93,9 @@ public:
         result(const result&) = delete;
         result& operator=(result) = delete;
     public:
+        result(result&&) = default;
         ~result() noexcept(false) {
-            if(!called) try {
+            if(sel && !called) try {
                 std::apply([&](auto&&... args) -> auto {
                     return sel->call<>(std::forward<Arg>(args)...);
                 }, args);
@@ -114,7 +110,7 @@ public:
             typename = std::enable_if_t<!std::is_reference<T>::value>,
             typename = std::enable_if_t<utility::arity<T>::value == 1>
         >
-        inline operator const T() && {
+        inline operator T() {
             called = true;
             return std::apply([&](auto&&... args) -> auto {
                 return sel->call<T>(std::forward<Arg>(args)...);
@@ -124,7 +120,7 @@ public:
         template<typename... T,
             typename = std::enable_if_t<utility::none<std::is_reference<T>::value...>::value>
         >
-        inline operator const std::tuple<T...>() && {
+        inline operator std::tuple<T...>() {
             called = true;
             return std::apply([&](auto&&... args) -> auto {
                 return sel->call<T...>(std::forward<Arg>(args)...);

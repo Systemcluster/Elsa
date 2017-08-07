@@ -8,7 +8,7 @@
 // TODO: reorder
 #include <iostream>
 
-#include <luajit-2.1/lua.hpp>
+#include <lua.hpp>
 #include <elsa.hpp>
 
 #include <utility>
@@ -148,7 +148,6 @@ bool test_selector_call_return_n_partial(elsa::state& state) {
     return a == 10 && b == 20;
 }
 
-
 bool test_state_select_delim(elsa::state& state) {
     state("a = { b = 5; c = function() end; d = { e = 5 } }");
     auto sel = state.select("a.d.e", '.');
@@ -179,6 +178,13 @@ bool test_call_result(elsa::state& state) {
     return std::get<0>(c) == 10 && std::get<1>(c) == 20;
 }
 
+bool test_call_result_tie(elsa::state& state) {
+    state("a = function() return 10, 20, 30; end");
+    int a = 0, b = 0, c = 0;
+    elsa::tie(a, b, c) = state["a"]();
+    return a == 10 && b == 20 && c == 30;
+}
+
 bool test_call_result_args(elsa::state& state) {
     state("a = function(b) return b+2; end");
     int a = state["a"](10);
@@ -196,6 +202,15 @@ bool test_call_nested_tuple(elsa::state& state) {
     std::tuple<int, std::tuple<int, int>> a = state["a"]();
     auto b = std::get<1>(a);
     return std::get<0>(a) == 1 && std::get<0>(b) == 2 && std::get<1>(b) == 3;
+}
+
+bool test_call_multiple_times(elsa::state& state) {
+    state("a = 0; b = function() a=a+1; return a; end");
+    auto b = state["b"];
+    b();
+    int t = b();
+    b();
+    return t == 2 && state["a"] == 3;
 }
 
 
@@ -229,9 +244,11 @@ const std::string, const std::function<bool(elsa::state&)>>> tests {
     
     { "test_call_result", test_call_result },
     { "test_call_result_args", test_call_result_args },
+    { "test_call_result_tie", test_call_result_tie },
     { "test_call_args", test_call_args },
     
-    { "test_call_nested_tuple", test_call_nested_tuple }
+    { "test_call_nested_tuple", test_call_nested_tuple },
+    { "test_call_multiple_times", test_call_multiple_times }
 };
 
 #if defined(COLOURED_OUTPUT)
