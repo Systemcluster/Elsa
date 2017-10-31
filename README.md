@@ -4,6 +4,8 @@ C++17 header-only interface to Lua 5.1+ and LuaJIT 2.0+.
 
 Work in progress. Not yet ready for general use!
 
+See [test/test.cpp](test/test.cpp) for the current implemented functionality.
+
 ## Usage
 
 Install the files within `include` and include `elsa.hpp`. `lua.hpp` must exist in your include path and your project must link against a compatible lua library (Lua 5.1+, LuaJIT 2.0+ or similar). 
