@@ -14,7 +14,9 @@ Install the files within `include` and include `elsa.hpp`. `lua.hpp` must exist 
 
 To build the tests, run `cmake` or manually compile `test/test.cpp`. In order to build the tests with `cmake`, execute the following command:
 
+```shell
 mkdir -p build && cd build && cmake .. && make
+```
 
 The tests can then be run by executing `./elsa_test`. 
 
